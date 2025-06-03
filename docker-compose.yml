@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  ingestion-service:
+    build:
+      context: .
+      dockerfile: services/ingestion-service/Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  train-service:
+    build:
+      context: .
+      dockerfile: services/train-service/Dockerfile
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./scripts:/app/scripts
+    environment:
+      - SPARK_LOCAL_IP=127.0.0.1
+      - PYSPARK_ALLOW_INSECURE_GATEWAY=1
+    restart: unless-stopped
+    depends_on:
+      - ingestion-service
+
+  predict-service:
+    build:
+      context: ./services/predict-service
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped
+    depends_on:
+      - train-service
+
+  compare-service:
+    build:
+      context: ./services/compare-service
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped
+    depends_on:
+      - train-service
+      - predict-service
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+    depends_on:
+      - ingestion-service
+      - train-service
+      - predict-service
+      - compare-service
+
+
+#docker-compose down -v --remove-orphans
+#docker system prune -af
+#docker-compose build --no-cache
+#docker-compose up -d

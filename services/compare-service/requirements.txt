@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pandas
+matplotlib
+psutil
+pynvml

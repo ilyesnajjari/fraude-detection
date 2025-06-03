@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pandas
+numpy
+pyspark
+psutil
+pynvml
+matplotlib
+scikit-learn
+cudf
+cuml
