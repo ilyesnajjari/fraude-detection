@@ -24,6 +24,7 @@ services:
     environment:
       - SPARK_LOCAL_IP=127.0.0.1
       - PYSPARK_ALLOW_INSECURE_GATEWAY=1
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
     restart: unless-stopped
     depends_on:
       - ingestion-service

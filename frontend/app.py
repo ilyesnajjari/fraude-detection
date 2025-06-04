@@ -16,7 +16,40 @@ HEADERS = {"Authorization": f"Bearer {AUTH_TOKEN}"} if AUTH_TOKEN else {}
 st.set_page_config(page_title="Dashboard Détection de Fraude", layout="wide")
 st.title("Dashboard Détection de Fraude Bancaire")
 
-# Navigation sidebar
+# Vérification des microservices AVANT la navigation
+services = {
+    "Ingestion-service": INGESTION_URL,
+    "Train-service": TRAIN_URL,
+    "Predict-service": PREDICT_URL,
+    "Compare-service": COMPARE_URL,
+}
+all_services_ok = True
+status_dict = {}
+
+with st.sidebar:
+    st.header("Statut des microservices")
+    for name, url in services.items():
+        try:
+            res = requests.get(f"{url}/status", headers=HEADERS, timeout=3)
+            status = res.json().get("status", "")
+            if status.startswith(name.lower().replace("-","") + " running") or "running" in status:
+                st.markdown(f"<span style='color:green;font-weight:bold'>{name} : OK</span>", unsafe_allow_html=True)
+                status_dict[name] = True
+            else:
+                st.markdown(f"<span style='color:red;font-weight:bold'>{name} : Indisponible</span>", unsafe_allow_html=True)
+                all_services_ok = False
+                status_dict[name] = False
+        except Exception:
+            st.markdown(f"<span style='color:orange;font-weight:bold'>{name} : En attente...</span>", unsafe_allow_html=True)
+            all_services_ok = False
+            status_dict[name] = False
+
+if not all_services_ok:
+    st.header("Statut des microservices")
+    st.info("Veuillez patienter, tous les services ne sont pas encore disponibles. Rafraîchissez la page si besoin.")
+    st.stop()
+
+# Navigation sidebar (affichée seulement si tous les services sont OK)
 page = st.sidebar.radio(
     "Navigation",
     [
@@ -27,6 +60,13 @@ page = st.sidebar.radio(
         "Lancer l'entraînement Spark"
     ]
 )
+if "last_page" not in st.session_state:
+    st.session_state["last_page"] = page
+elif st.session_state["last_page"] != page:
+    for key in list(st.session_state.keys()):
+        if key not in ["last_page"]:
+            del st.session_state[key]
+    st.session_state["last_page"] = page
 
 if page == "Statut Services":
     st.header("1. Statut des microservices")
@@ -56,23 +96,22 @@ if page == "Statut Services":
 
     # Compte à rebours et actualisation si tous les services ne sont pas OK
     if not all_services_ok:
-        placeholder = st.empty()
-        for seconds in range(20, 0, -1):
-            placeholder.warning(f"⏳ Actualisation dans {seconds} secondes...")
-            time.sleep(1)
-        placeholder.empty()
-        st.experimental_rerun()
+        st.warning("Tous les services ne sont pas encore disponibles. Veuillez réessayer plus tard.")
     else:
         st.success("✅ Tous les services sont opérationnels!")
 
 elif page == "Prédiction":
     st.header("2. Prédiction")
     st.info("Les valeurs par défaut sont extraites du fichier CSV de statistiques (creditcard.csv).")
-    stat_choice = st.selectbox(
-        "Choisissez la statistique pour pré-remplir les champs (sauf Time et Amount qui prennent toujours la moyenne) :",
-        options=["min", "max", "mean"],
+
+    # Choix de la plateforme de prédiction
+    platform = st.selectbox(
+        "Choisissez la plateforme de prédiction :",
+        options=["spark", "sklearn", "rapids"],
         index=0
     )
+
+    
 
     # Vérifie les statuts
     ingestion_ok = False
@@ -103,23 +142,25 @@ elif page == "Prédiction":
                 features_ok = False
                 stats_ok = False
                 try:
-                    features_response = requests.get(f"{PREDICT_URL}/features", headers=HEADERS, timeout=3)
+                    features_response = requests.get(f"{PREDICT_URL}/features?platform={platform}", headers=HEADERS, timeout=3)
                     if features_response.status_code == 200:
                         features = features_response.json().get("features", [])
                         features_ok = True
                 except Exception:
                     pass
                 try:
-                    summary_response = requests.get(f"{PREDICT_URL}/summary", headers=HEADERS, timeout=3)
+                    summary_response = requests.get(f"{PREDICT_URL}/summary?platform={platform}", headers=HEADERS, timeout=3)
                     if summary_response.status_code == 200:
-                        summary = pd.DataFrame(summary_response.json())
+                        summary_json = summary_response.json()
+                        if platform in summary_json:
+                            summary = pd.DataFrame(summary_json[platform])
+                        else:
+                            summary = pd.DataFrame()
                         if not summary.empty and "summary" in summary.columns:
-                            stat_row = summary[summary["summary"] == stat_choice]
-                            if not stat_row.empty:
-                                stats_dict = stat_row.iloc[0].to_dict()
                             mean_row = summary[summary["summary"] == "mean"]
-                            if not mean_row.empty:
-                                mean_dict = mean_row.iloc[0].to_dict()
+                        if not mean_row.empty:
+                            stats_dict = mean_row.iloc[0].to_dict()
+                            mean_dict = mean_row.iloc[0].to_dict()
                             stats_ok = True
                 except Exception:
                     pass
@@ -131,26 +172,50 @@ elif page == "Prédiction":
         if not features or not stats_dict or not mean_dict:
             st.info("⏳ Toujours en attente des features/statistiques du modèle... La page va s'actualiser.")
             time.sleep(2)
-            st.experimental_rerun()
         else:
             with st.form("prediction_form"):
-                st.write("Entrez les caractéristiques de la transaction :")
+                st.write(f"Entrez les caractéristiques de la transaction ({platform}) :")
                 inputs = {}
                 for feat in features:
-                    if feat in ["Time", "Amount"]:
-                        default = float(mean_dict.get(feat, 0.0))
-                        st.caption(f"{feat} (pré-rempli avec la moyenne du CSV)")
-                    else:
-                        default = float(stats_dict.get(feat, 0.0))
-                        st.caption(f"{feat} (pré-rempli avec {stat_choice} du CSV)")
-                    inputs[feat] = st.number_input(f"{feat}", value=default)
+                    # Récupère les valeurs min, max, mean pour chaque feature
+                    min_val = stats_dict.get(feat, "")
+                    max_val = stats_dict.get(feat, "")
+                    mean_val = mean_dict.get(feat, "")
+
+                    # Conversion pour affichage scientifique si besoin
+                    def fmt(val):
+                        try:
+                            val = float(val)
+                            if abs(val) < 1e-3 or abs(val) > 1e4:
+                                return f"{val:.2e}"
+                            else:
+                                return f"{val}"
+                        except Exception:
+                            return str(val)
+
+                    label = f"{feat} (min: {fmt(min_val)}, max: {fmt(max_val)}, mean: {fmt(mean_val)})"
+
+                    # Pré-remplir avec la valeur mean, en gardant la notation scientifique si besoin
+                    def parse_val(val):
+                        try:
+                            # Si la valeur est déjà en notation scientifique sous forme de str, garde-la
+                            if isinstance(val, str) and ("e" in val or "E" in val):
+                                return float(val)
+                            return float(val)
+                        except Exception:
+                            return 0.0
+
+                    val_input = parse_val(mean_val)
+
+                    # Affichage du champ avec label enrichi et valeur scientifique réelle
+                    inputs[feat] = st.number_input(label, value=val_input, format="%.6g")
                 submitted = st.form_submit_button("Prédire la fraude")
                 if submitted:
                     try:
                         payload = {feat: val for feat, val in inputs.items()}
-                        res = requests.post(f"{PREDICT_URL}/predict", json=payload, headers=HEADERS)
+                        res = requests.post(f"{PREDICT_URL}/predict?platform={platform}", json=payload, headers=HEADERS)
                         prediction = res.json()
-                        st.success(f"Prédiction : {'Fraude' if prediction.get('prediction', 0) == 1 else 'Non fraude'}")
+                        st.success(f"Prédiction ({platform}) : {'Fraude' if prediction.get('prediction', 0) == 1 else 'Non fraude'}")
                         st.write(f"Probabilité : {prediction.get('probability', 0):.2%}")
                     except Exception as e:
                         st.error(f"Erreur predict-service: {e}")
@@ -163,9 +228,8 @@ elif page == "Résultats des modèles":
         res = requests.get(f"{COMPARE_URL}/results", headers=HEADERS)
         results = res.json()
         
-        # Extraction des métriques et comparaisons
+        # Extraction des métriques
         metrics_data = [r for r in results if "comparisons" not in r]
-        comparisons = next((r["comparisons"] for r in results if "comparisons" in r), None)
         
         if metrics_data:
             # Affichage du tableau des résultats
@@ -173,40 +237,22 @@ elif page == "Résultats des modèles":
             st.subheader("Tableau des résultats")
             st.dataframe(df)
             
-            # Affichage des comparaisons
-            if comparisons:
-                st.subheader("Comparaisons des performances")
-                
-                # Temps d'entraînement
-                if comparisons["training_times"]:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write("⏱️ Temps d'entraînement moyen par plateforme")
-                        times_df = pd.DataFrame(list(comparisons["training_times"].items()), 
-                                             columns=["Platform", "Time (s)"])
-                        st.bar_chart(times_df.set_index("Platform"))
-                
-                # Scores AUC
-                if comparisons["auc_scores"]:
-                    with col2:
-                        st.write("📈 Scores AUC par modèle et plateforme")
-                        auc_df = pd.DataFrame(list(comparisons["auc_scores"].items()),
-                                           columns=["Model-Platform", "AUC"])
-                        st.bar_chart(auc_df.set_index("Model-Platform"))
-            
-            # Graphiques détaillés
+            # Affichage des plots
             st.subheader("Visualisations détaillées")
             try:
                 plots_res = requests.get(f"{COMPARE_URL}/plots", headers=HEADERS)
                 plots = plots_res.json()
                 
-                if "training_time" in plots:
-                    st.image(f"data:image/png;base64,{plots['training_time']}", 
-                            caption="Comparaison des temps d'entraînement")
-                
+                if "training_time_scores" in plots:
+                    st.image(f"data:image/png;base64,{plots['training_time_scores']}", caption="Temps d'entraînement par plateforme et modèle")
                 if "auc" in plots:
-                    st.image(f"data:image/png;base64,{plots['auc']}", 
-                            caption="Comparaison des scores AUC")
+                    st.image(f"data:image/png;base64,{plots['auc']}", caption="Score AUC par modèle et plateforme")
+                if "auc_boxplot" in plots:
+                    st.image(f"data:image/png;base64,{plots['auc_boxplot']}", caption="Distribution des scores AUC par plateforme")
+                if "precision" in plots:
+                    st.image(f"data:image/png;base64,{plots['precision']}", caption="Précision par modèle et plateforme")
+                if "training_time_pie" in plots:
+                    st.image(f"data:image/png;base64,{plots['training_time_pie']}", caption="Répartition du temps d'entraînement moyen par plateforme")
             except Exception as e:
                 st.warning(f"Impossible de charger les graphiques détaillés : {e}")
         else:
@@ -249,26 +295,28 @@ elif page == "Monitoring":
     if not monitoring_loaded:
         st.info("⏳ Toujours en attente des métriques... La page va s'actualiser.")
         time.sleep(2)
-        st.experimental_rerun()
-
+        st.rerun()
 elif page == "Lancer l'entraînement Spark":
     st.header("6. Lancer l'entraînement")
-    
-    col1, col2 = st.columns(2)
-    
+
+    col1, col2, col3 = st.columns(3)
+
     with col1:
         if st.button("🚀 Lancer l'entraînement Spark (CPU)"):
             with st.spinner("Entraînement Spark en cours..."):
                 try:
                     res = requests.get(f"{TRAIN_URL}/train?platform=spark", headers=HEADERS, timeout=600)
                     train_results = res.json()
-                    st.success("Entraînement Spark terminé !")
-                    st.json(train_results.get("spark", {}))
-                    try:
-                        upload_res = requests.post(f"{COMPARE_URL}/upload-results", json=[train_results], headers=HEADERS)
-                        st.info("Résultats envoyés à compare-service")
-                    except Exception as e:
-                        st.warning(f"Impossible d'envoyer les résultats : {e}")
+                    if "error" in train_results.get("spark", {}):
+                        st.error(f"Erreur Spark : {train_results['spark']['error']}")
+                    else:
+                        st.success("Entraînement Spark terminé !")
+                        st.json(train_results.get("spark", {}))
+                        try:
+                            upload_res = requests.post(f"{COMPARE_URL}/upload-results", json=[train_results], headers=HEADERS)
+                            st.info("Résultats envoyés à compare-service")
+                        except Exception as e:
+                            st.warning(f"Impossible d'envoyer les résultats : {e}")
                 except Exception as e:
                     st.error(f"Erreur lors de l'entraînement Spark : {e}")
 
@@ -278,15 +326,36 @@ elif page == "Lancer l'entraînement Spark":
                 try:
                     res = requests.get(f"{TRAIN_URL}/train?platform=rapids", headers=HEADERS, timeout=600)
                     train_results = res.json()
-                    st.success("Entraînement RAPIDS terminé !")
                     if "error" in train_results.get("rapids", {}):
-                        st.warning(f"Erreur RAPIDS : {train_results['rapids']['error']}")
+                        st.error(f"Erreur RAPIDS : {train_results['rapids']['error']}")
                     else:
+                        st.success("Entraînement RAPIDS terminé !")
                         st.json(train_results.get("rapids", {}))
-                    try:
-                        upload_res = requests.post(f"{COMPARE_URL}/upload-results", json=[train_results], headers=HEADERS)
-                        st.info("Résultats envoyés à compare-service")
-                    except Exception as e:
-                        st.warning(f"Impossible d'envoyer les résultats : {e}")
+                        try:
+                            upload_res = requests.post(f"{COMPARE_URL}/upload-results", json=[train_results], headers=HEADERS)
+                            st.info("Résultats envoyés à compare-service")
+                        except Exception as e:
+                            st.warning(f"Impossible d'envoyer les résultats : {e}")
                 except Exception as e:
                     st.error(f"Erreur lors de l'entraînement RAPIDS : {e}")
+
+    with col3:
+        if st.button("🧮 Lancer l'entraînement Sklearn (CPU)"):
+            with st.spinner("Entraînement Sklearn en cours..."):
+                try:
+                    res = requests.get(f"{TRAIN_URL}/train?platform=sklearn", headers=HEADERS, timeout=600)
+                    train_results = res.json()
+                    if "error" in train_results.get("sklearn", {}):
+                        st.error(f"Erreur Sklearn : {train_results['sklearn']['error']}")
+                    else:
+                        st.success("Entraînement Sklearn terminé !")
+                        st.json(train_results.get("sklearn", {}))
+                        try:
+                            upload_res = requests.post(f"{COMPARE_URL}/upload-results", json=[train_results], headers=HEADERS)
+                            st.info("Résultats envoyés à compare-service")
+                        except Exception as e:
+                            st.warning(f"Impossible d'envoyer les résultats : {e}")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'entraînement Sklearn : {e}")
+
+

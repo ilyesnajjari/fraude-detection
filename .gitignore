@@ -1,1 +1,69 @@
-data/creditcard.csv
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+
+# Spark
+spark-warehouse/
+derby.log
+metastore_db/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Data and Models
+data/*.csv
+models/*.csv
+models/spark_logistic_model/
+!data/.gitkeep
+!models/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

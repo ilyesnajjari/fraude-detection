@@ -100,9 +100,18 @@ def monitor():
 
 @app.get("/summary")
 def get_summary():
-    try:
-        df = pd.read_csv("./models/summary_stats.csv")
-        # On retourne tout le CSV sous forme de liste de dicts
-        return df.to_dict(orient="records")
-    except Exception as e:
-        return {"error": str(e)}
+    summaries = {}
+    files = {
+        "spark": "./models/summary_stats.csv",
+        "sklearn": "./models/summary_stats_sklearn.csv",
+        "rapids": "./models/summary_stats_rapids.csv"
+    }
+    for key, path in files.items():
+        try:
+            df = pd.read_csv(path)
+            summaries[key] = df.to_dict(orient="records")
+        except FileNotFoundError:
+            summaries[key] = {"error": f"File not found: {path}"}
+        except Exception as e:
+            summaries[key] = {"error": str(e)}
+    return summaries
