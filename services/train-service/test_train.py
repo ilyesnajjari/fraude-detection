@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 import pandas as pd
 from app import app  
+from app import load_data  # si le bon fichier app.py est dans le même dossier
 
 client = TestClient(app)
 

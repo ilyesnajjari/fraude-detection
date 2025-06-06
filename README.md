@@ -25,12 +25,22 @@ L’architecture repose sur des microservices Python (FastAPI), orchestrés via 
     - `app.py` : API FastAPI pour lancer les entraînements.
   - **`predict-service/`** : Service d’inférence (prédiction) en temps réel.
     - `app.py` : API FastAPI pour prédire la fraude à partir d’une transaction.
+    - `test_predict.py` : Tests unitaires pour l’API de prédiction.
   - **`compare-service/`** : Service de comparaison et visualisation des résultats.
     - `app.py` : API FastAPI pour comparer les scores, générer des graphiques, etc.
+    - `test_compare.py` : Tests unitaires pour l’API de comparaison.
   - **`frontend/`** : Interface utilisateur (Streamlit) pour piloter l’ensemble du pipeline, visualiser les résultats, lancer des prédictions, etc.
 
 - **`k8s/`**  
-  Fichiers de déploiement Kubernetes (optionnel).
+  Fichiers de déploiement Kubernetes :
+  - `train-deployment.yaml`, `train-service.yaml`
+  - `predict-deployment.yaml`, `predict-service.yaml`
+  - `ingestion-deployment.yaml`, `ingestion-service.yaml`
+  - `compare-deployment.yaml`, `compare-service.yaml`
+  - `frontend-deployment.yaml`, `frontend-service.yaml`
+
+- **`.github/workflows/ci.yml`**  
+  Pipeline CI/CD GitHub Actions pour tests automatiques à chaque push/pull request.
 
 - **`logs/`**  
   Logs d’exécution des services.
@@ -81,22 +91,64 @@ docker compose --profile gpu up --build
 
 ---
 
-## ⚙️ Fonctionnalités principales
+## ☸️ Déploiement Kubernetes
 
-- **Entraînement multi-plateforme** :  
-  Lance l’entraînement sur Spark, RAPIDS ou Sklearn, compare les scores et les temps.
+1. **Prérequis** :  
+   - Un cluster Kubernetes local (Minikube, Docker Desktop) ou cloud (GKE, AKS, EKS)
+   - Images Docker poussées sur Docker Hub
 
-- **Prédiction en temps réel** :  
-  Envoie une transaction à l’API pour obtenir une prédiction (fraude ou non).
+2. **Déployer tous les services** :
+   ```bash
+   kubectl apply -f k8s/
+   ```
 
-- **Monitoring** :  
-  Suivi de l’utilisation CPU/RAM/GPU de chaque service.
+3. **Vérifier le déploiement** :
+   ```bash
+   kubectl get pods
+   kubectl get services
+   ```
 
-- **Comparaison visuelle** :  
-  Visualisation des scores (AUC, accuracy, recall, precision) et des temps d’entraînement par plateforme et modèle.
+4. **Accéder au frontend** :  
+   - Récupère le port NodePort ou utilise :
+     ```bash
+     kubectl port-forward service/frontend-service 8501:80
+     ```
+   - Puis ouvre [http://localhost:8501](http://localhost:8501)
 
-- **Statistiques descriptives** :  
-  Accès aux statistiques du dataset (min, max, mean, stddev) pour chaque pipeline.
+---
+
+## 🧪 Tests unitaires
+
+- Chaque microservice possède ses propres tests unitaires (ex : `services/predict-service/test_predict.py`).
+- Les tests utilisent `pytest` et `unittest.mock` pour simuler les dépendances Spark, accès disque, etc.
+
+**Exemple pour lancer tous les tests :**
+```bash
+pytest services/predict-service/test_predict.py
+pytest services/compare-service/test_compare.py
+```
+
+---
+
+## ⚙️ Intégration Continue (CI/CD)
+
+- Une pipeline GitHub Actions (`.github/workflows/ci.yml`) exécute automatiquement les tests à chaque push ou pull request sur `main`.
+
+**Extrait du workflow :**
+```yaml
+- name: Install dependencies for all services
+  run: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt || true
+    for req in services/*/requirements.txt; do
+      pip install -r "$req"
+    done
+    if [ -f frontend/requirements.txt ]; then pip install -r frontend/requirements.txt; fi
+
+- name: Run tests
+  run: |
+    pytest
+```
 
 ---
 
