@@ -5,7 +5,7 @@ from app import app
 
 import pytest
 import requests
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 class MockResponse:
     def __init__(self, json_data, status_code):
@@ -46,7 +46,8 @@ def mocked_requests_get(*args, **kwargs):
 
 
 @patch("requests.get", side_effect=mocked_requests_get)
-def test_services_status(mock_get):
+@patch("streamlit.secrets", new_callable=lambda: {"auth_token": "dummy"})
+def test_services_status(mock_secrets, mock_get):
     for name, url in services.items():
         res = requests.get(f"{url}/status")
         assert res.status_code == 200
