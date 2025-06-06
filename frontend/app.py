@@ -1,5 +1,3 @@
-from fastapi import FastAPI
-app = FastAPI()
 
 import streamlit as st
 import requests
