@@ -1,10 +1,12 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+from app import app
+
 import unittest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 import pandas as pd
-from app import app  
-from app import load_data  # si le bon fichier app.py est dans le même dossier
-from services.train_service.app import app  # <-- Chemin correct !
 
 client = TestClient(app)
 

@@ -2,10 +2,13 @@ import matplotlib
 matplotlib.use("Agg")
 import pytest
 from fastapi.testclient import TestClient
-from app import app
 import pandas as pd
 import os
-from services.compare_service.app import app  # <-- Chemin correct !
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from app import app
 
 client = TestClient(app)
 

@@ -3,7 +3,10 @@ from unittest.mock import patch, MagicMock
 import pytest
 from services.predict_service.app import app  
 
-from app import app  # importe normalement
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+from app import app
 
 client = TestClient(app)
 

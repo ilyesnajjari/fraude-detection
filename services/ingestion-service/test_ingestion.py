@@ -1,8 +1,11 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+from app import app
+
 import pytest
 from fastapi.testclient import TestClient
-from app import app
 import os
-from services.ingestion_service.app import app  # <-- Chemin correct !
 
 client = TestClient(app)
 
