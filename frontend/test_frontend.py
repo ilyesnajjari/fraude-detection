@@ -46,7 +46,6 @@ def mocked_requests_get(*args, **kwargs):
 
 
 @patch("requests.get", side_effect=mocked_requests_get)
-@patch("streamlit.secrets", new_callable=lambda: {"auth_token": "dummy"})
 def test_services_status(mock_secrets, mock_get):
     for name, url in services.items():
         res = requests.get(f"{url}/status")
