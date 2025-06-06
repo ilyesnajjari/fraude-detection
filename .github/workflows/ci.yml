@@ -22,19 +22,33 @@ jobs:
     - name: Install dependencies for all services
       run: |
         python -m pip install --upgrade pip
+        # Installer les requirements globaux si existants
         pip install -r requirements.txt || true
+
+        # Installer les requirements de chaque service sauf train-service
         for req in services/*/requirements.txt; do
-          # Sauter train-service ici
           if [[ "$req" != "services/train-service/requirements.txt" ]]; then
             pip install -r "$req"
           fi
         done
-        # Installer requirements-base.txt pour train-service
+
+        # Installer les requirements spécifiques à train-service
         if [ -f services/train-service/requirements-base.txt ]; then
           pip install -r services/train-service/requirements-base.txt
         fi
-        if [ -f frontend/requirements.txt ]; then pip install -r frontend/requirements.txt; fi
 
-    - name: Run tests
+        # Installer les dépendances du frontend
+        if [ -f frontend/requirements.txt ]; then
+          pip install -r frontend/requirements.txt
+        fi
+
+    - name: Run tests per service
       run: |
-        pytest
+        set -e  # Arrête le script en cas d'erreur
+
+        for service in frontend services/*; do
+          if [ -d "$service" ]; then
+            echo "🚀 Running tests in $service..."
+            pytest "$service"
+          fi
+        done
