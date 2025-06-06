@@ -12,6 +12,8 @@ from app import app
 client = TestClient(app)
 
 
+import app.config as config  # Remplace par le vrai chemin du module qui contient ces variables
+
 @pytest.fixture
 def mock_csv_files(tmp_path, monkeypatch):
     # Données de test
@@ -34,10 +36,10 @@ def mock_csv_files(tmp_path, monkeypatch):
     df.to_csv(rapids_path, index=False)
     df.to_csv(sklearn_path, index=False)
 
-    # Monkeypatch des chemins dans le module app
-    monkeypatch.setattr(app, "RESULTS_PATH_SPARK", str(spark_path))
-    monkeypatch.setattr(app, "RESULTS_PATH_RAPIDS", str(rapids_path))
-    monkeypatch.setattr(app, "RESULTS_PATH_SKLEARN", str(sklearn_path))
+    # Monkeypatch des chemins dans le module de config
+    monkeypatch.setattr(config, "RESULTS_PATH_SPARK", str(spark_path))
+    monkeypatch.setattr(config, "RESULTS_PATH_RAPIDS", str(rapids_path))
+    monkeypatch.setattr(config, "RESULTS_PATH_SKLEARN", str(sklearn_path))
 
     return {
         "spark": spark_path,
