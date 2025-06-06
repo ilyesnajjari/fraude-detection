@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from app import app
 import pandas as pd
 import os
+from services.compare_service.app import app  # <-- Chemin correct !
 
 client = TestClient(app)
 
