@@ -6,7 +6,6 @@ import pytest
 from fastapi.testclient import TestClient
 import os
 
-client = TestClient(app)
 
 def test_status():
     response = client.get("/status")

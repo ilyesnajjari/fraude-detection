@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
-client = TestClient(app)
 
 # Transaction de test avec des valeurs réalistes
 sample_transaction = {

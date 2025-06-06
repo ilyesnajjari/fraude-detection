@@ -7,7 +7,6 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 import pandas as pd
 
-client = TestClient(app)
 
 class TestTrainModels(unittest.TestCase):
     @patch("app.skl_save_results")

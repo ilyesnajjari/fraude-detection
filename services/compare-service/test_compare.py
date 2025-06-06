@@ -9,7 +9,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
-client = TestClient(app)
 
 @pytest.fixture
 def mock_csv_files(tmp_path, monkeypatch):
