@@ -8,12 +8,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
+from app import app
+client = TestClient(app)
 
 
 @pytest.fixture
 def mock_csv_files(tmp_path, monkeypatch):
-    import app  # Important : importer ici pour pouvoir monkeypatch correctement
-
     # Données de test
     data = {
         "model": ["LogisticRegression", "RandomForest"],

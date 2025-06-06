@@ -6,7 +6,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 from app import app
 from fastapi.testclient import TestClient
-
 client = TestClient(app)
 
 
