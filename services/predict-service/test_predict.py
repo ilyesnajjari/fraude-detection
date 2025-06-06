@@ -1,10 +1,13 @@
-from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 import pytest
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
+from app import app
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
 
 
 # Transaction de test avec des valeurs réalistes

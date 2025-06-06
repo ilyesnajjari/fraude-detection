@@ -24,8 +24,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt || true
         for req in services/*/requirements.txt; do
-          pip install -r "$req"
+          # Sauter train-service ici
+          if [[ "$req" != "services/train-service/requirements.txt" ]]; then
+            pip install -r "$req"
+          fi
         done
+        # Installer requirements-base.txt pour train-service
+        if [ -f services/train-service/requirements-base.txt ]; then
+          pip install -r services/train-service/requirements-base.txt
+        fi
         if [ -f frontend/requirements.txt ]; then pip install -r frontend/requirements.txt; fi
 
     - name: Run tests

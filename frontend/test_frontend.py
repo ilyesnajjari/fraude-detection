@@ -45,7 +45,7 @@ def mocked_requests_get(*args, **kwargs):
 
 
 @patch("requests.get", side_effect=mocked_requests_get)
-def test_services_status(mock_secrets, mock_get):
+def test_services_status(mock_get):
     for name, url in services.items():
         res = requests.get(f"{url}/status")
         assert res.status_code == 200
