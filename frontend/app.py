@@ -10,8 +10,7 @@ TRAIN_URL = os.getenv("TRAIN_URL", "http://train-service:8000")
 PREDICT_URL = os.getenv("PREDICT_URL", "http://predict-service:8000")
 COMPARE_URL = os.getenv("COMPARE_URL", "http://compare-service:8000")
 
-AUTH_TOKEN = st.secrets.get("auth_token", None)
-HEADERS = {"Authorization": f"Bearer {AUTH_TOKEN}"} if AUTH_TOKEN else {}
+HEADERS = {}
 
 st.set_page_config(page_title="Dashboard Détection de Fraude", layout="wide")
 st.title("Dashboard Détection de Fraude Bancaire")
