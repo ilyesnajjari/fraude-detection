@@ -2,17 +2,19 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies required for matplotlib
+# Install system dependencies required for matplotlib and pandas
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     python3-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
 COPY app.py .
 
 EXPOSE 8000

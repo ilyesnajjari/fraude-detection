@@ -6,3 +6,5 @@ pyspark
 psutil
 matplotlib
 scikit-learn
+pytest
+httpx

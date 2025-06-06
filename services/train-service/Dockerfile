@@ -25,8 +25,9 @@ RUN java -version
 
 # Installer les dépendances Python
 COPY services/train-service/requirements-base.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements-base.txt
-
+RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements-base.txt
 # Copier le code de l'application
 COPY services/train-service/. .
 

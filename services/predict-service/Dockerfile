@@ -30,6 +30,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install pyspark==3.3.0
 
+
 # Copier le code applicatif
 WORKDIR /app
 COPY . .

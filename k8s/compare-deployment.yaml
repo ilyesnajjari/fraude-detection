@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: compare-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: compare
+  template:
+    metadata:
+      labels:
+        app: compare
+    spec:
+      containers:
+      - name: compare
+        image: ilyesnajjari/compare-service:latest
+        ports:
+        - containerPort: 8000

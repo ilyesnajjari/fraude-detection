@@ -4,3 +4,5 @@ pyspark
 pydantic
 pandas
 psutil
+pytest
+httpx

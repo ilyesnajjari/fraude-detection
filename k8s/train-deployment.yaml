@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: train-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: train
+  template:
+    metadata:
+      labels:
+        app: train
+    spec:
+      containers:
+      - name: train
+        image: ilyesnajjari/train-service:latest
+        ports:
+        - containerPort: 8000
