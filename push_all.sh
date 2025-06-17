@@ -1,4 +1,15 @@
 #!/bin/bash
+docker build -f Dockerfile.data -t ilyesnajjari/data-image:v1 .
+docker tag ilyesnajjari/data-image:v1 ilyesnajjari/data-image:latest
+docker push ilyesnajjari/data-image:v1
+
+docker build -f Dockerfile.models -t ilyesnajjari/models-image:v1 .
+docker tag ilyesnajjari/models-image:v1 ilyesnajjari/models-image:latest
+docker push ilyesnajjari/models-image:v1
+
+docker build -f Dockerfile.scripts -t ilyesnajjari/scripts-image:v1 .
+docker tag ilyesnajjari/scripts-image:v1 ilyesnajjari/scripts-image:latest
+docker push ilyesnajjari/scripts-image:v1
 
 docker tag fraude-detection-train-service ilyesnajjari/train-service:latest
 docker push ilyesnajjari/train-service:latest

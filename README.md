@@ -72,6 +72,74 @@ L’architecture est basée sur des microservices :
 
 ---
 
+## 📦 Gestion des images Docker spécialisées
+
+Pour optimiser le déploiement et la modularité, chaque type de ressource (data, models, scripts) possède sa propre image Docker :
+
+- **`Dockerfile.data`** :  
+  Contient `data/`, `models/` et `scripts/`.
+- **`Dockerfile.models`** :  
+  Contient uniquement `models/`.
+- **`Dockerfile.scripts`** :  
+  Contient uniquement `scripts/`.
+
+**Exemple de build et push pour chaque image :**
+```sh
+docker build -f Dockerfile.data -t ilyesnajjari/data-image:v1 .
+docker push ilyesnajjari/data-image:v1
+
+docker build -f Dockerfile.models -t ilyesnajjari/models-image:v1 .
+docker push ilyesnajjari/models-image:v1
+
+docker build -f Dockerfile.scripts -t ilyesnajjari/scripts-image:v1 .
+docker push ilyesnajjari/scripts-image:v1
+```
+
+---
+
+## ☸️ Utilisation des init containers Kubernetes
+
+Les init containers sont utilisés pour copier les ressources (data, models, scripts) dans des volumes partagés avant le démarrage des services principaux.  
+Exemple pour les modèles :
+
+```yaml
+initContainers:
+  - name: models-init
+    image: ilyesnajjari/models-image:v1
+    command: ["sh", "-c", "ls -l /models; mkdir -p /models-dest; cp -r /models/. /models-dest/ || true"]
+    volumeMounts:
+      - name: models-volume
+        mountPath: /models-dest
+containers:
+  - name: predict
+    image: ilyesnajjari/predict-service:latest
+    volumeMounts:
+      - name: models-volume
+        mountPath: /app/models
+```
+
+---
+
+## 🔍 Commandes utiles pour le debug
+
+- **Vérifier le contenu d’un dossier dans une image Docker :**
+  ```sh
+  docker run --rm -it ilyesnajjari/models-image:v1 ls -l /models
+  docker run --rm -it ilyesnajjari/scripts-image:v1 ls -l /scripts
+  ```
+
+- **Accéder à un pod Kubernetes :**
+  ```sh
+  kubectl exec -it <pod-name> -- sh
+  ```
+
+- **Voir les logs d’un init container :**
+  ```sh
+  kubectl logs <pod-name> -c models-init
+  ```
+
+---
+
 ## 🚀 Lancement rapide (Docker)
 
 1. **Prérequis** :  
@@ -82,8 +150,8 @@ L’architecture est basée sur des microservices :
    ```bash
    docker compose up --build
    ```
-    ```bash
-docker compose --profile gpu up --build
+   ```bash
+   docker compose --profile gpu up --build
    ```
 
 3. **Accéder à l’interface** :  

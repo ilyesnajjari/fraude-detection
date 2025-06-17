@@ -12,8 +12,16 @@ spec:
       labels:
         app: ingestion
     spec:
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+      initContainers:
+        - name: data-init
+          image: ilyesnajjari/data-image:v1
+          command: ["sh", "-c", "cp -r /data/* /data-dest/"]
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data-dest
       containers:
-      - name: ingestion
-        image: ilyesnajjari/ingestion-service:latest
-        ports:
-        - containerPort: 8000
+        - name: ingestion
+          image: ilyesnajjari/ingestion-service:latest

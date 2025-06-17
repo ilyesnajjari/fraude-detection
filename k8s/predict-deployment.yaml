@@ -12,8 +12,21 @@ spec:
       labels:
         app: predict
     spec:
+      volumes:
+        - name: models-volume
+          emptyDir: {}
+      initContainers:
+        - name: models-init
+          image: ilyesnajjari/models-image:v1
+          command: ["sh", "-c", "ls -l /models; mkdir -p /models-dest; cp -r /models/. /models-dest/ || true"]
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models-dest
       containers:
-      - name: predict
-        image: ilyesnajjari/predict-service:latest
-        ports:
-        - containerPort: 8000
+        - name: predict
+          image: ilyesnajjari/predict-service:latest
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: models-volume
+              mountPath: /app/models

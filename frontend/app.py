@@ -6,10 +6,10 @@ import os
 import time
 
 # URLs des microservices
-INGESTION_URL = os.getenv("INGESTION_URL", "http://ingestion-service:8000")
-TRAIN_URL = os.getenv("TRAIN_URL", "http://train-service:8000")
-PREDICT_URL = os.getenv("PREDICT_URL", "http://predict-service:8000")
-COMPARE_URL = os.getenv("COMPARE_URL", "http://compare-service:8000")
+INGESTION_URL = os.getenv("INGESTION_URL", "http://ingestion-service")
+TRAIN_URL = os.getenv("TRAIN_URL", "http://train-service")
+PREDICT_URL = os.getenv("PREDICT_URL", "http://predict-service")
+COMPARE_URL = os.getenv("COMPARE_URL", "http://compare-service")
 
 HEADERS = {}
 

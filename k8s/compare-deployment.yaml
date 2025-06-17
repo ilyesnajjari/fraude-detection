@@ -12,8 +12,21 @@ spec:
       labels:
         app: compare
     spec:
+      volumes:
+        - name: models-volume
+          emptyDir: {}
+      initContainers:
+        - name: models-init
+          image: ilyesnajjari/models-image:v1
+          command: ["sh", "-c", "ls -l /models; mkdir -p /models-dest; cp -r /models/. /models-dest/ || true"]
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models-dest   # monte volume sur un dossier différent
       containers:
-      - name: compare
-        image: ilyesnajjari/compare-service:latest
-        ports:
-        - containerPort: 8000
+        - name: compare
+          image: ilyesnajjari/compare-service:latest
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: models-volume
+              mountPath: /app/models   # monte volume dans le container principal

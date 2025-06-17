@@ -32,8 +32,11 @@ spec:
 
 
   #minikube start
+  #minikube start --driver=hyperkit
   #kubectl config get-contexts
   #kubectl apply -f .
   #kubectl get pods
   #kubectl get services
   #kubectl get svc service exposer
+  #minikube service frontend-service
+  #minikube ip

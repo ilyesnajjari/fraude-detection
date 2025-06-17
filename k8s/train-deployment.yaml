@@ -12,8 +12,41 @@ spec:
       labels:
         app: train
     spec:
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+        - name: models-volume
+          emptyDir: {}
+        - name: scripts-volume
+          emptyDir: {}
+      initContainers:
+        - name: data-init
+          image: ilyesnajjari/data-image:v1
+          command: ["sh", "-c", "ls -l /data; mkdir -p /data-dest; cp -r /data/. /data-dest/ || true"]
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data-dest
+        - name: models-init
+          image: ilyesnajjari/models-image:v1
+          command: ["sh", "-c", "ls -l /models; mkdir -p /models-dest; cp -r /models/. /models-dest/ || true"]
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models-dest
+        - name: scripts-init
+          image: ilyesnajjari/data-image:v1
+          command: ["sh", "-c", "ls -l /scripts; mkdir -p /scripts-dest; cp -r /scripts/. /scripts-dest/ || true"]
+          volumeMounts:
+            - name: scripts-volume
+              mountPath: /scripts-dest
       containers:
-      - name: train
-        image: ilyesnajjari/train-service:latest
-        ports:
-        - containerPort: 8000
+        - name: train
+          image: ilyesnajjari/train-service:latest
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+            - name: models-volume
+              mountPath: /app/models
+            - name: scripts-volume
+              mountPath: /app/scripts

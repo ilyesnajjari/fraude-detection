@@ -28,6 +28,7 @@ COPY services/train-service/requirements-base.txt .
 RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements-base.txt
+
 # Copier le code de l'application
 COPY services/train-service/. .
 
@@ -40,6 +41,9 @@ fi' > /install_gpu.sh && chmod +x /install_gpu.sh
 
 # Ajouter le PYTHONPATH pour les scripts
 ENV PYTHONPATH="${PYTHONPATH}:/app/scripts"
+
+# Déclaration des volumes à monter depuis l’extérieur
+VOLUME ["/app/data", "/app/models", "/app/scripts"]
 
 # Commande de lancement FastAPI
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
